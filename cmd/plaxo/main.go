@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"plaxo-orchestra/internal/analyzer"
 	"plaxo-orchestra/internal/orchestrator"
 	"strings"
 	"time"
@@ -16,6 +17,8 @@ func main() {
 		fmt.Println("Comandos:")
 		fmt.Println("  chat \"<mensagem>\"    - Executa comando único inteligente")
 		fmt.Println("  interactive          - Modo interativo com IA avançada")
+		fmt.Println("  spread               - Analisa aplicação e distribui agentes")
+		fmt.Println("  agents               - Gerencia agentes distribuídos")
 		fmt.Println("  insights             - Insights avançados do sistema")
 		fmt.Println("  metrics              - Métricas de performance")
 		fmt.Println("  spec                 - Gera especificação do projeto")
@@ -53,6 +56,12 @@ func main() {
 
 	case "interactive":
 		runEnhancedInteractive(enhancedOrch)
+
+	case "spread":
+		runAgentSpread(workingDir)
+
+	case "agents":
+		runAgentManager(workingDir)
 
 	case "insights":
 		showAdvancedInsights(enhancedOrch)
@@ -215,4 +224,152 @@ func showMetrics(orch *orchestrator.EnhancedOrchestrator) {
 	}
 	
 	fmt.Println()
+}
+
+func runAgentSpread(workingDir string) {
+	fmt.Println("🕷️  Plaxo Orchestra - Agent Spread Mode")
+	fmt.Println("=====================================")
+	fmt.Println()
+	
+	// Criar analisador
+	appAnalyzer := analyzer.NewAppAnalyzer(workingDir)
+	
+	// Analisar aplicação
+	structure, err := appAnalyzer.AnalyzeApplication()
+	if err != nil {
+		fmt.Printf("❌ Erro analisando aplicação: %v\n", err)
+		os.Exit(1)
+	}
+	
+	// Mostrar resumo da análise
+	fmt.Println("\n📊 Resumo da Análise:")
+	fmt.Println(strings.Repeat("─", 40))
+	fmt.Printf("🏗️  Aplicação: %s\n", structure.RootPath)
+	fmt.Printf("📚 Tech Stack: %v\n", structure.TechStack)
+	fmt.Printf("📊 Complexidade: %s\n", structure.Complexity)
+	fmt.Printf("🎯 Domínios encontrados: %d\n", len(structure.Domains))
+	fmt.Printf("🤖 Agentes planejados: %d\n", len(structure.AgentPlan))
+	
+	fmt.Println("\n🎯 Domínios Identificados:")
+	for name, domain := range structure.Domains {
+		status := "📁"
+		if domain.AgentNeeded {
+			status = "🤖"
+		}
+		fmt.Printf("  %s %s: %d arquivos\n", status, name, len(domain.Files))
+	}
+	
+	fmt.Println("\n🤖 Plano de Distribuição:")
+	for domain, paths := range structure.AgentPlan {
+		fmt.Printf("  🎯 %s:\n", domain)
+		for _, path := range paths {
+			fmt.Printf("    📍 %s\n", path)
+		}
+	}
+	
+	// Confirmar distribuição
+	fmt.Print("\n❓ Deseja distribuir os agentes? (s/N): ")
+	scanner := bufio.NewScanner(os.Stdin)
+	if scanner.Scan() {
+		response := strings.ToLower(strings.TrimSpace(scanner.Text()))
+		if response == "s" || response == "sim" || response == "y" || response == "yes" {
+			// Distribuir agentes
+			if err := appAnalyzer.DeployAgents(structure); err != nil {
+				fmt.Printf("❌ Erro distribuindo agentes: %v\n", err)
+				os.Exit(1)
+			}
+			
+			fmt.Println("\n🎉 Agentes distribuídos com sucesso!")
+			fmt.Println("\n📋 Próximos passos:")
+			fmt.Println("  1. Execute: plaxo interactive")
+			fmt.Println("  2. Use comandos específicos por domínio")
+			fmt.Println("  3. Monitore com: plaxo insights")
+		} else {
+			fmt.Println("❌ Distribuição cancelada")
+		}
+	}
+}
+
+func runAgentManager(workingDir string) {
+	fmt.Println("🤖 Plaxo Orchestra - Agent Manager")
+	fmt.Println("=================================")
+	fmt.Println()
+	
+	// Criar gerenciador de agentes
+	agentManager := orchestrator.NewAgentManager(workingDir)
+	
+	// Carregar configuração
+	if err := agentManager.LoadConfiguration(); err != nil {
+		fmt.Printf("❌ %v\n", err)
+		fmt.Println("\n💡 Dica: Execute 'plaxo spread' para analisar e distribuir agentes primeiro")
+		os.Exit(1)
+	}
+	
+	// Modo interativo para gerenciar agentes
+	scanner := bufio.NewScanner(os.Stdin)
+	
+	for {
+		fmt.Println("\n🤖 Comandos disponíveis:")
+		fmt.Println("  list                    - Listar todos os agentes")
+		fmt.Println("  <domain>.<command>      - Executar comando específico")
+		fmt.Println("  orchestrate <command>   - Executar comando de orquestração")
+		fmt.Println("  domains                 - Listar domínios disponíveis")
+		fmt.Println("  quit                    - Sair")
+		
+		fmt.Print("\nagents> ")
+		if !scanner.Scan() {
+			break
+		}
+		
+		input := strings.TrimSpace(scanner.Text())
+		if input == "" {
+			continue
+		}
+		
+		switch {
+		case input == "quit":
+			fmt.Println("👋 Até logo!")
+			return
+			
+		case input == "list":
+			agentManager.ListAgents()
+			
+		case input == "domains":
+			domains := agentManager.GetDomains()
+			fmt.Println("🎯 Domínios disponíveis:")
+			for _, domain := range domains {
+				commands, _ := agentManager.GetAvailableCommands(domain)
+				fmt.Printf("  %s: %v\n", domain, commands)
+			}
+			
+		case strings.HasPrefix(input, "orchestrate "):
+			command := strings.TrimPrefix(input, "orchestrate ")
+			if err := agentManager.ExecuteOrchestrationCommand(command); err != nil {
+				fmt.Printf("❌ Erro: %v\n", err)
+			}
+			
+		case strings.Contains(input, "."):
+			parts := strings.SplitN(input, ".", 2)
+			if len(parts) == 2 {
+				domain := parts[0]
+				commandParts := strings.SplitN(parts[1], " ", 2)
+				command := commandParts[0]
+				
+				userInput := ""
+				if len(commandParts) > 1 {
+					userInput = commandParts[1]
+				}
+				
+				if err := agentManager.ExecuteAgentCommand(domain, command, userInput); err != nil {
+					fmt.Printf("❌ Erro: %v\n", err)
+				}
+			} else {
+				fmt.Println("❌ Formato inválido. Use: <domain>.<command> [input]")
+			}
+			
+		default:
+			fmt.Println("❌ Comando não reconhecido")
+			fmt.Println("💡 Use 'list' para ver agentes ou '<domain>.<command>' para executar")
+		}
+	}
 }

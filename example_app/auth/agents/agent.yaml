@@ -1,0 +1,25 @@
+# Agente especializado para domínio: auth
+name: auth_agent
+domain: auth
+complexity: 2
+files_count: 2
+tech_stack: [FastAPI Python Django]
+
+# Responsabilidades
+responsibilities:
+  - Análise de código do domínio auth
+  - Refatoração e otimização
+  - Testes e validação
+  - Documentação técnica
+
+# Contexto do domínio
+context:
+  path: /home/carlos-eduardo/Documentos/plaxo/plaxo_orchestra/example_app/auth
+  files: 2
+  
+# Comandos especializados
+commands:
+  analyze: "Analisar código do domínio auth"
+  refactor: "Refatorar código seguindo melhores práticas"
+  test: "Criar/executar testes para o domínio"
+  document: "Gerar documentação técnica"

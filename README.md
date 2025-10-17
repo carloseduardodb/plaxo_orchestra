@@ -9,7 +9,14 @@ Orquestrador inteligente de agentes IA que potencializa o Amazon Q CLI com:
 
 ## 🚀 Funcionalidades Principais
 
-### 📡 **Streaming em Tempo Real** (NOVO!)
+### 🕷️ **Agent Spread** (NOVO!)
+
+- **Análise Automática**: Escaneia aplicação e detecta domínios
+- **Distribuição Inteligente**: Cria agentes especializados por área
+- **Comandos Específicos**: Cada agente conhece seu domínio profundamente
+- **Orquestração Global**: Coordena todos os agentes automaticamente
+
+### 📡 **Streaming em Tempo Real**
 
 - **Feedback Imediato**: Vê o progresso em tempo real
 - **Zero Timeout**: Elimina percepção de travamento
@@ -69,6 +76,21 @@ orchestra interactive
 # plaxo🧠> quit
 ```
 
+### Agent Spread - Distribuição Automática
+
+```bash
+# Analisar aplicação e distribuir agentes
+orchestra spread
+
+# Gerenciar agentes distribuídos
+orchestra agents
+# agents> list                    # Lista agentes
+# agents> auth.analyze           # Analisa domínio auth
+# agents> products.refactor      # Refatora produtos
+# agents> orchestrate test_all   # Testa tudo
+# agents> quit
+```
+
 ### Modo Interativo com Streaming
 
 ```bash
@@ -85,6 +107,8 @@ orchestra interactive
 ```bash
 orchestra chat "mensagem"    # Executa comando único
 orchestra interactive        # Modo interativo inteligente
+orchestra spread            # Analisa e distribui agentes
+orchestra agents            # Gerencia agentes distribuídos
 orchestra insights          # Estatísticas de aprendizado
 orchestra metrics           # Métricas de performance
 orchestra spec              # Gera especificação do projeto

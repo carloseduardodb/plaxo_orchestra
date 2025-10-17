@@ -1,0 +1,19 @@
+# Configuração do Plaxo Orchestra
+app_name: example_app
+complexity: simple
+tech_stack: [FastAPI Python Django]
+total_domains: 2
+
+# Agentes distribuídos
+agents:
+  auth:
+    - /home/carlos-eduardo/Documentos/plaxo/plaxo_orchestra/example_app/auth/agents
+  products:
+    - /home/carlos-eduardo/Documentos/plaxo/plaxo_orchestra/example_app/products/agents
+
+# Comandos de orquestração
+orchestration:
+  analyze_all: "Analisar todos os domínios"
+  refactor_all: "Refatorar aplicação completa"
+  test_all: "Executar todos os testes"
+  deploy_all: "Preparar deploy da aplicação"

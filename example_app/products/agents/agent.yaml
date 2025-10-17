@@ -1,0 +1,25 @@
+# Agente especializado para domínio: products
+name: products_agent
+domain: products
+complexity: 2
+files_count: 2
+tech_stack: [FastAPI Python Django]
+
+# Responsabilidades
+responsibilities:
+  - Análise de código do domínio products
+  - Refatoração e otimização
+  - Testes e validação
+  - Documentação técnica
+
+# Contexto do domínio
+context:
+  path: /home/carlos-eduardo/Documentos/plaxo/plaxo_orchestra/example_app/products
+  files: 2
+  
+# Comandos especializados
+commands:
+  analyze: "Analisar código do domínio products"
+  refactor: "Refatorar código seguindo melhores práticas"
+  test: "Criar/executar testes para o domínio"
+  document: "Gerar documentação técnica"
