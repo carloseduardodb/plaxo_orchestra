@@ -9,6 +9,13 @@ Orquestrador inteligente de agentes IA que potencializa o Amazon Q CLI com:
 
 ## 🚀 Funcionalidades Principais
 
+### 📡 **Streaming em Tempo Real** (NOVO!)
+
+- **Feedback Imediato**: Vê o progresso em tempo real
+- **Zero Timeout**: Elimina percepção de travamento
+- **Progress Tracking**: Barra de progresso e indicadores visuais
+- **Controle Flexível**: Liga/desliga streaming no modo interativo
+
 ### ⚡ Pool de Agentes Persistentes
 
 - **Zero Cold Start**: Reutiliza instâncias do Amazon Q CLI
@@ -60,6 +67,17 @@ orchestra interactive
 # plaxo🧠> criar API de usuários
 # plaxo🧠> insights
 # plaxo🧠> quit
+```
+
+### Modo Interativo com Streaming
+
+```bash
+orchestra interactive
+# plaxo🧠📡> criar API de usuários    # 📡 indica streaming ativo
+# plaxo🧠📡> stream off               # Desativa streaming  
+# plaxo🧠> stream on                  # Ativa streaming
+# plaxo🧠📡> insights
+# plaxo🧠📡> quit
 ```
 
 ### Comandos Disponíveis

@@ -81,18 +81,25 @@ func main() {
 }
 
 func runEnhancedInteractive(orch *orchestrator.EnhancedOrchestrator) {
-	fmt.Println("🧠 Plaxo Orchestra v2.0 - Modo Interativo Inteligente")
+	fmt.Println("🧠 Plaxo Orchestra v2.0 - Modo Interativo com Streaming")
 	fmt.Println("Comandos especiais:")
 	fmt.Println("  'quit' - sair")
 	fmt.Println("  'insights' - estatísticas de aprendizado")
 	fmt.Println("  'metrics' - métricas de performance")
 	fmt.Println("  'cache clear' - limpar cache")
+	fmt.Println("  'stream on/off' - ativar/desativar streaming")
 	fmt.Println()
 
 	scanner := bufio.NewScanner(os.Stdin)
+	streamingEnabled := true
 	
 	for {
-		fmt.Print("plaxo🧠> ")
+		if streamingEnabled {
+			fmt.Print("plaxo🧠📡> ")
+		} else {
+			fmt.Print("plaxo🧠> ")
+		}
+		
 		if !scanner.Scan() {
 			break
 		}
@@ -115,12 +122,25 @@ func runEnhancedInteractive(orch *orchestrator.EnhancedOrchestrator) {
 		case "cache clear":
 			fmt.Println("🗑️  Cache limpo")
 			continue
+		case "stream on":
+			streamingEnabled = true
+			fmt.Println("📡 Streaming ativado - você verá o progresso em tempo real")
+			continue
+		case "stream off":
+			streamingEnabled = false
+			fmt.Println("📴 Streaming desativado - aguarde resposta completa")
+			continue
 		}
 		
-		// Process with timeout
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+		// Process with timeout and streaming feedback
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		
 		start := time.Now()
+		
+		if streamingEnabled {
+			fmt.Println("🚀 Processando com streaming ativo...")
+		}
+		
 		if err := orch.ProcessWithIntelligence(ctx, input); err != nil {
 			fmt.Printf("❌ Erro: %v\n", err)
 		}

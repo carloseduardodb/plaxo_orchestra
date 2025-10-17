@@ -68,7 +68,7 @@ func (o *SmartOrchestrator) handleSmartMultiAgent(input string, domains []string
 	// Carrega agentes
 	for _, domain := range domains {
 		if _, exists := o.agents[domain]; !exists {
-			agent := agent.NewAgent(domain, o.workingDir)
+			agent := agent.NewAgent(domain, o.workingDir, o.agentPool)
 			if err := agent.LoadInstructions(); err != nil {
 				fmt.Printf("⚠️  Erro carregando agente %s: %v\n", domain, err)
 				continue

@@ -3,8 +3,8 @@ package agent
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
+	"plaxo-orchestra/internal/pool"
 	"strings"
 )
 
@@ -14,9 +14,10 @@ type Agent struct {
 	Instructions string
 	Memory       []string
 	WorkingDir   string
+	Pool         *pool.AgentPool
 }
 
-func NewAgent(domain, workingDir string) *Agent {
+func NewAgent(domain, workingDir string, agentPool *pool.AgentPool) *Agent {
 	// Suporte para bounded contexts (ex: "user/profile")
 	parts := strings.Split(domain, "/")
 	name := strings.Join(parts, "-") + "-agent"
@@ -26,6 +27,7 @@ func NewAgent(domain, workingDir string) *Agent {
 		Domain:     domain,
 		WorkingDir: workingDir,
 		Memory:     make([]string, 0),
+		Pool:       agentPool,
 	}
 }
 
@@ -81,21 +83,20 @@ func (a *Agent) SaveMemory(entry string) error {
 }
 
 func (a *Agent) Execute(task string) (string, error) {
-	context := fmt.Sprintf(`
-Domain: %s
+	context := fmt.Sprintf(`Domain: %s
 Instructions: %s
 Recent Memory: %s
-Task: %s
-`, a.Domain, a.Instructions, strings.Join(a.Memory[max(0, len(a.Memory)-5):], "\n"), task)
+Task: %s`, a.Domain, a.Instructions, strings.Join(a.Memory[max(0, len(a.Memory)-5):], "\n"), task)
 
-	cmd := exec.Command("q", "chat", context)
-	output, err := cmd.Output()
+	output, err := a.Pool.Execute(a.Domain, context)
 	
 	if err == nil {
-		a.SaveMemory(fmt.Sprintf("Task: %s | Result: %s", task, string(output)))
+		a.SaveMemory(fmt.Sprintf("Task: %s | Result: Success", task))
+	} else {
+		a.SaveMemory(fmt.Sprintf("Task: %s | Error: %v", task, err))
 	}
 	
-	return string(output), err
+	return output, err
 }
 
 func max(a, b int) int {

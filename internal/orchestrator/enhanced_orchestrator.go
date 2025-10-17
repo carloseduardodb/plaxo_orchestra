@@ -7,6 +7,8 @@ import (
 	"plaxo-orchestra/internal/learning"
 	"plaxo-orchestra/internal/observability"
 	"plaxo-orchestra/internal/pool"
+	"plaxo-orchestra/internal/stream"
+	"strings"
 	"sync"
 	"time"
 )
@@ -88,6 +90,7 @@ func (eo *EnhancedOrchestrator) ProcessWithIntelligence(ctx context.Context, inp
 		for _, suggestion := range suggestions {
 			fmt.Printf("  • %s\n", suggestion)
 		}
+		fmt.Println()
 	}
 	
 	// Check circuit breaker
@@ -102,8 +105,8 @@ func (eo *EnhancedOrchestrator) ProcessWithIntelligence(ctx context.Context, inp
 		return err
 	}
 	
-	// Execute workflow with parallelization
-	result, err := eo.executeWorkflow(ctx, workflow, input)
+	// Execute workflow with streaming
+	result, err := eo.executeWorkflowWithStreaming(ctx, workflow, input)
 	if err != nil {
 		eo.circuitBreaker.RecordFailure()
 		eo.learning.RecordFeedback(span.SpanID, input, "workflow", false, 1)
@@ -115,7 +118,6 @@ func (eo *EnhancedOrchestrator) ProcessWithIntelligence(ctx context.Context, inp
 	eo.circuitBreaker.RecordSuccess()
 	eo.learning.RecordFeedback(span.SpanID, input, "workflow", true, 5)
 	
-	fmt.Println(result)
 	return nil
 }
 
@@ -163,6 +165,90 @@ func (eo *EnhancedOrchestrator) planIntelligentWorkflow(ctx context.Context, inp
 	
 	fmt.Printf("📋 Workflow planejado com %d etapas\n", len(workflow))
 	return workflow, nil
+}
+
+func (eo *EnhancedOrchestrator) executeWorkflowWithStreaming(ctx context.Context, workflow []WorkflowStep, input string) (string, error) {
+	span := eo.observer.StartSpan("execute_workflow_streaming", map[string]string{
+		"steps": fmt.Sprintf("%d", len(workflow)),
+	})
+	defer eo.observer.FinishSpan(span, true, nil)
+	
+	// Create stream handler
+	streamer := stream.NewStreamHandler()
+	
+	// Show workflow overview
+	fmt.Printf("📋 Workflow planejado com %d etapas\n", len(workflow))
+	for i, step := range workflow {
+		fmt.Printf("  %d. %s\n", i+1, step.Agent)
+	}
+	fmt.Println()
+	
+	results := make(map[string]string)
+	executed := make(map[string]bool)
+	
+	stepCount := 0
+	totalSteps := len(workflow)
+	
+	for len(executed) < len(workflow) {
+		// Find steps that can be executed (dependencies satisfied)
+		var readySteps []WorkflowStep
+		
+		for _, step := range workflow {
+			if executed[step.Agent] {
+				continue
+			}
+			
+			canExecute := true
+			for _, dep := range step.Dependencies {
+				if !executed[dep] {
+					canExecute = false
+					break
+				}
+			}
+			
+			if canExecute {
+				readySteps = append(readySteps, step)
+			}
+		}
+		
+		if len(readySteps) == 0 {
+			return "", fmt.Errorf("workflow deadlock detected")
+		}
+		
+		// Execute ready steps with streaming feedback
+		for _, step := range readySteps {
+			stepCount++
+			
+			// Show progress
+			stream.ShowProgressBar(stepCount, totalSteps, fmt.Sprintf("Executando %s", step.Agent))
+			
+			fmt.Printf("\n🔄 Etapa %d/%d: %s\n", stepCount, totalSteps, step.Agent)
+			fmt.Println(strings.Repeat("─", 50))
+			
+			// Build context-aware prompt
+			prompt := eo.buildContextualPrompt(input, step, results)
+			
+			// Execute with streaming
+			result := streamer.ExecuteWithStream(ctx, prompt)
+			if result.Error != nil {
+				return "", result.Error
+			}
+			
+			results[step.Agent] = result.Content
+			executed[step.Agent] = true
+			
+			fmt.Printf("\n✅ %s concluído\n\n", step.Agent)
+		}
+	}
+	
+	// Combine results
+	finalResult := ""
+	for agent, result := range results {
+		finalResult += fmt.Sprintf("=== %s ===\n%s\n\n", agent, result)
+	}
+	
+	fmt.Println("🎉 Workflow concluído com sucesso!")
+	return finalResult, nil
 }
 
 func (eo *EnhancedOrchestrator) executeWorkflow(ctx context.Context, workflow []WorkflowStep, input string) (string, error) {

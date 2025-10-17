@@ -1,9 +1,11 @@
 package pool
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os/exec"
+	"strings"
 	"sync"
 	"time"
 )
@@ -140,7 +142,7 @@ func (ap *AsyncProcessor) processJob(job Job) JobResult {
 	}
 	defer ap.pool.Release(conn)
 	
-	// Execute Amazon Q CLI
+	// Execute Amazon Q CLI with streaming support
 	ctx, cancel := context.WithTimeout(job.Context, 45*time.Second)
 	defer cancel()
 	
@@ -153,4 +155,50 @@ func (ap *AsyncProcessor) processJob(job Job) JobResult {
 	return JobResult{
 		Data: string(output),
 	}
+}
+
+// StreamingProcessor executes jobs with real-time output streaming
+type StreamingProcessor struct {
+	pool *ConnectionPool
+}
+
+func NewStreamingProcessor(pool *ConnectionPool) *StreamingProcessor {
+	return &StreamingProcessor{pool: pool}
+}
+
+func (sp *StreamingProcessor) ExecuteWithStream(ctx context.Context, request string, onOutput func(string)) (string, error) {
+	conn, err := sp.pool.Get(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer sp.pool.Release(conn)
+	
+	// Execute Q CLI with streaming
+	cmd := exec.CommandContext(ctx, "q", "chat", "--no-interactive", request)
+	
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return "", err
+	}
+	
+	if err := cmd.Start(); err != nil {
+		return "", err
+	}
+	
+	var output strings.Builder
+	scanner := bufio.NewScanner(stdout)
+	
+	for scanner.Scan() {
+		line := scanner.Text()
+		output.WriteString(line + "\n")
+		if onOutput != nil {
+			onOutput(line + "\n")
+		}
+	}
+	
+	if err := cmd.Wait(); err != nil {
+		return "", fmt.Errorf("Q CLI error: %v", err)
+	}
+	
+	return output.String(), nil
 }

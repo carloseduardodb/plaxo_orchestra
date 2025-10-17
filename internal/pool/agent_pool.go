@@ -1,9 +1,8 @@
 package pool
 
 import (
-	"bufio"
+	"context"
 	"fmt"
-	"io"
 	"os/exec"
 	"sync"
 	"time"
@@ -11,10 +10,6 @@ import (
 
 type AgentInstance struct {
 	ID       string
-	Cmd      *exec.Cmd
-	Stdin    io.WriteCloser
-	Stdout   io.ReadCloser
-	Scanner  *bufio.Scanner
 	LastUsed time.Time
 	InUse    bool
 	Context  string
@@ -61,30 +56,9 @@ func (p *AgentPool) GetOrCreate(agentID string) (*AgentInstance, error) {
 }
 
 func (p *AgentPool) createInstance(agentID string) (*AgentInstance, error) {
-	cmd := exec.Command("q", "chat")
-	
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		return nil, err
-	}
-	
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-	
-	if err := cmd.Start(); err != nil {
-		return nil, err
-	}
-	
-	scanner := bufio.NewScanner(stdout)
-	
+	// Use direct execution instead of persistent process
 	instance := &AgentInstance{
 		ID:       agentID,
-		Cmd:      cmd,
-		Stdin:    stdin,
-		Stdout:   stdout,
-		Scanner:  scanner,
 		LastUsed: time.Now(),
 		InUse:    true,
 	}
@@ -99,33 +73,24 @@ func (p *AgentPool) Execute(agentID, input string) (string, error) {
 	}
 	defer p.Release(instance)
 	
-	// Send input
-	if _, err := instance.Stdin.Write([]byte(input + "\n")); err != nil {
-		return "", err
-	}
+	// Execute Q CLI directly with longer timeout for initialization
+	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	defer cancel()
 	
-	// Read response
-	var response string
-	timeout := time.After(30 * time.Second)
-	done := make(chan bool)
+	cmd := exec.CommandContext(ctx, "q", "chat", input)
 	
-	go func() {
-		for instance.Scanner.Scan() {
-			line := instance.Scanner.Text()
-			response += line + "\n"
-			if isResponseComplete(line) {
-				done <- true
-				return
-			}
+	output, err := cmd.Output()
+	if err != nil {
+		if ctx.Err() == context.DeadlineExceeded {
+			return "", fmt.Errorf("Q CLI timeout after 120 seconds")
 		}
-	}()
-	
-	select {
-	case <-done:
-		return response, nil
-	case <-timeout:
-		return "", fmt.Errorf("timeout waiting for response")
+		if exitError, ok := err.(*exec.ExitError); ok {
+			return "", fmt.Errorf("Q CLI error (exit %d): %s", exitError.ExitCode(), string(exitError.Stderr))
+		}
+		return "", fmt.Errorf("Q CLI error: %v", err)
 	}
+	
+	return string(output), nil
 }
 
 func (p *AgentPool) Release(instance *AgentInstance) {
@@ -144,7 +109,6 @@ func (p *AgentPool) cleanup() {
 		p.mutex.Lock()
 		for id, instance := range p.instances {
 			if !instance.InUse && time.Since(instance.LastUsed) > p.maxIdle {
-				instance.Cmd.Process.Kill()
 				delete(p.instances, id)
 			}
 		}
@@ -152,7 +116,4 @@ func (p *AgentPool) cleanup() {
 	}
 }
 
-func isResponseComplete(line string) bool {
-	// Simple heuristic - adjust based on Q CLI output patterns
-	return line == "" || len(line) == 0
-}
+

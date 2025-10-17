@@ -9,6 +9,7 @@ import (
 	"plaxo-orchestra/internal/agent"
 	"plaxo-orchestra/internal/analyzer"
 	"plaxo-orchestra/internal/detector"
+	"plaxo-orchestra/internal/pool"
 	"strings"
 	"time"
 )
@@ -16,12 +17,14 @@ import (
 type Orchestrator struct {
 	workingDir string
 	agents     map[string]*agent.Agent
+	agentPool  *pool.AgentPool
 }
 
 func New(workingDir string) *Orchestrator {
 	return &Orchestrator{
 		workingDir: workingDir,
 		agents:     make(map[string]*agent.Agent),
+		agentPool:  pool.NewAgentPool(),
 	}
 }
 
@@ -63,7 +66,7 @@ func (o *Orchestrator) handleMultiAgent(input string, domains []string) error {
 	// Carrega agentes dos domínios
 	for _, domain := range domains {
 		if _, exists := o.agents[domain]; !exists {
-			agent := agent.NewAgent(domain, o.workingDir)
+			agent := agent.NewAgent(domain, o.workingDir, o.agentPool)
 			if err := agent.LoadInstructions(); err != nil {
 				fmt.Printf("⚠️  Erro carregando agente %s: %v\n", domain, err)
 				continue
